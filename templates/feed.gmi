@@ -1,5 +1,19 @@
 # Home
 
 {%- for post in posts %}
-👤 {{post}}
+=> /@{{post.username}} 👤 @{{post.username}}
+{%- if post.body.len() > 0 %}
+{{ post.body }}
+{%- endif -%}
+{%- if let Some(media) = post.media -%}
+	{%- match media -%}
+		{%- when Media::Image with (img) %}
+=> {{img.0}} — {{img.1}}
+		{%- when Media::External with (ext) %}
+=> {{ext.0}} — {{ext.1}}
+		{%- when Media::Video %}
+— Video (unavailable)
+	{%- endmatch -%}
+{%- endif %}
+=> /p/{{post.id}} ✉️ {{post.replies}} replies · {{post.reposts}} reposts · {{post.likes}} likes
 {% endfor -%}
