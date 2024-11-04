@@ -1,0 +1,16 @@
+image: archlinux
+packages:
+  - cargo
+secrets:
+  - 7972440d-fdcb-44f3-b5a4-bb25f8a7f89f
+sources:
+  - https://git.sr.ht/~nixgoat/benitoite
+tasks:
+  - mirror: |
+      cd benitoite
+      git remote set-head origin -d
+      ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+      git push --prune git@github.com:otoayana/benitoite.git '+refs/remotes/origin/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
+  - build: |
+      cd benitoite
+      cargo build --release
