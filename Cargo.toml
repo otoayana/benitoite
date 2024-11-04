@@ -1,0 +1,26 @@
+[package]
+name = "benitoite"
+version = "0.1.0"
+edition = "2021"
+repository = "https://git.sr.ht/~nixgoat/benitoite"
+authors = ["Lux Aliaga <me@lux.rip>"]
+license = "AGPL-3.0-or-later"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+askama = "0.12"
+atrium-api = "0.24"
+atrium-xrpc-client = "0.5"
+fluffer = "4"
+fluskama = "0.1.2"
+ipld-core = "0.4"
+toml = "0.8"
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[dependencies.tokio]
+version = "1"
+features = ["full"]

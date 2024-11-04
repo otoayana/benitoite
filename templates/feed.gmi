@@ -1,0 +1,5 @@
+# Home
+
+{%- for post in posts %}
+👤 {{post}}
+{% endfor -%}
