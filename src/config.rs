@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File, io::Read};
+use std::{collections::HashMap, fs::File, io::Read, path::PathBuf};
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -10,8 +10,8 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct Base {
     pub bind: String,
-    pub cert: String,
-    pub key: String,
+    pub cert: PathBuf,
+    pub key: PathBuf,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,11 +1,14 @@
-use askama::Template;
-use fluffer::{Client, Fluff};
-use fluskama::FluffTemplate;
-
 use crate::{
-    session::Session,
+    state::State,
     types::{Media, Post},
 };
+use askama::Template;
+use fluffer::Fluff;
+use fluskama::FluffTemplate;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+type Client = fluffer::Client<Arc<Mutex<State>>>;
 
 #[derive(Debug, Template)]
 #[template(path = "feed.gmi", escape = "txt")]
@@ -13,10 +16,17 @@ pub struct Feed {
     posts: Vec<Post>,
 }
 
-pub async fn feed(c: Client) -> FluffTemplate<Feed> {
+pub async fn feed<'a>(c: Client) -> FluffTemplate<Feed> {
+    let state = c.state.lock().await;
     if let Some(fingerprint) = c.fingerprint() {
-        let session = Session::from_fingerprint(&fingerprint).await.unwrap();
-        let feed = session.feed().await.unwrap();
+        let feed = state
+            .sessions
+            .get(&fingerprint)
+            .unwrap()
+            .clone()
+            .feed()
+            .await
+            .unwrap();
 
         FluffTemplate::from(Feed { posts: feed })
     } else {
@@ -25,8 +35,6 @@ pub async fn feed(c: Client) -> FluffTemplate<Feed> {
 }
 
 pub async fn interact(c: Client) -> Fluff {
-    let did = c.parameter("did").unwrap();
-    let at_type = c.parameter("type").unwrap();
     let id = c.parameter("id").unwrap();
 
     let Some(input) = c.input() else {
@@ -34,14 +42,12 @@ pub async fn interact(c: Client) -> Fluff {
     };
 
     if let Some(fingerprint) = c.fingerprint() {
-        let session = Session::from_fingerprint(&fingerprint).await.unwrap();
+        let state = c.state.lock().await;
+        let session = state.sessions.get(&fingerprint).unwrap().clone();
 
         match input.as_str() {
-            "l" => {
-                let uri = format!("at://{}/{}/{}", did, at_type, id);
-                dbg!(&uri);
-                session.like(&uri).await.unwrap()
-            }
+            "l" => session.like(&id).await.unwrap(),
+            "r" => session.repost(&id).await.unwrap(),
             _ => (),
         }
     }
