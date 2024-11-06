@@ -134,29 +134,69 @@ impl Session {
     pub async fn like<'a>(self, id: &'a str) -> Result<(), Box<dyn std::error::Error>> {
         let hash_map = self.objects.lock().await;
         let object = hash_map.get(id).unwrap();
-
-        self.agent
+        let post = self
+            .agent
             .api
-            .com
-            .atproto
-            .repo
-            .create_record(Object::from(
-                atrium_api::com::atproto::repo::create_record::InputData {
-                    collection: Nsid::from_str(atrium_api::app::bsky::feed::Like::NSID)?,
-                    record: atrium_api::record::KnownRecord::AppBskyFeedLike(Box::new(
-                        Object::from(atrium_api::app::bsky::feed::like::RecordData {
-                            created_at: atrium_api::types::string::Datetime::now(),
-                            subject: Object::from(object.clone()),
-                        }),
-                    ))
-                    .try_into_unknown()?,
-                    repo: self.id.clone(),
-                    rkey: None,
-                    swap_commit: None,
-                    validate: None,
+            .app
+            .bsky
+            .feed
+            .get_posts(Object::from(
+                atrium_api::app::bsky::feed::get_posts::ParametersData {
+                    uris: vec![object.uri.clone()],
                 },
             ))
             .await?;
+
+        if let Some(like) = post
+            .clone()
+            .posts
+            .first()
+            .unwrap()
+            .viewer
+            .clone()
+            .unwrap()
+            .like
+            .clone()
+        {
+            self.agent
+                .api
+                .com
+                .atproto
+                .repo
+                .delete_record(Object::from(
+                    atrium_api::com::atproto::repo::delete_record::InputData {
+                        collection: Nsid::from_str(atrium_api::app::bsky::feed::Like::NSID)?,
+                        repo: self.id.clone(),
+                        rkey: like.split('/').last().unwrap().to_string(),
+                        swap_commit: None,
+                        swap_record: None,
+                    },
+                ))
+                .await?;
+        } else {
+            self.agent
+                .api
+                .com
+                .atproto
+                .repo
+                .create_record(Object::from(
+                    atrium_api::com::atproto::repo::create_record::InputData {
+                        collection: Nsid::from_str(atrium_api::app::bsky::feed::Like::NSID)?,
+                        record: atrium_api::record::KnownRecord::AppBskyFeedLike(Box::new(
+                            Object::from(atrium_api::app::bsky::feed::like::RecordData {
+                                created_at: atrium_api::types::string::Datetime::now(),
+                                subject: Object::from(object.clone()),
+                            }),
+                        ))
+                        .try_into_unknown()?,
+                        repo: self.id.clone(),
+                        rkey: None,
+                        swap_commit: None,
+                        validate: None,
+                    },
+                ))
+                .await?;
+        }
 
         Ok(())
     }
@@ -164,29 +204,69 @@ impl Session {
     pub async fn repost<'a>(self, id: &'a str) -> Result<(), Box<dyn std::error::Error>> {
         let hash_map = self.objects.lock().await;
         let object = hash_map.get(id).unwrap();
-
-        self.agent
+        let post = self
+            .agent
             .api
-            .com
-            .atproto
-            .repo
-            .create_record(Object::from(
-                atrium_api::com::atproto::repo::create_record::InputData {
-                    collection: Nsid::from_str(atrium_api::app::bsky::feed::Repost::NSID)?,
-                    record: atrium_api::record::KnownRecord::AppBskyFeedRepost(Box::new(
-                        Object::from(atrium_api::app::bsky::feed::repost::RecordData {
-                            created_at: atrium_api::types::string::Datetime::now(),
-                            subject: Object::from(object.clone()),
-                        }),
-                    ))
-                    .try_into_unknown()?,
-                    repo: self.id.clone(),
-                    rkey: None,
-                    swap_commit: None,
-                    validate: None,
+            .app
+            .bsky
+            .feed
+            .get_posts(Object::from(
+                atrium_api::app::bsky::feed::get_posts::ParametersData {
+                    uris: vec![object.uri.clone()],
                 },
             ))
             .await?;
+
+        if let Some(repost) = post
+            .clone()
+            .posts
+            .first()
+            .unwrap()
+            .viewer
+            .clone()
+            .unwrap()
+            .repost
+            .clone()
+        {
+            self.agent
+                .api
+                .com
+                .atproto
+                .repo
+                .delete_record(Object::from(
+                    atrium_api::com::atproto::repo::delete_record::InputData {
+                        collection: Nsid::from_str(atrium_api::app::bsky::feed::Like::NSID)?,
+                        repo: self.id.clone(),
+                        rkey: repost.split('/').last().unwrap().to_string(),
+                        swap_commit: None,
+                        swap_record: None,
+                    },
+                ))
+                .await?;
+        } else {
+            self.agent
+                .api
+                .com
+                .atproto
+                .repo
+                .create_record(Object::from(
+                    atrium_api::com::atproto::repo::create_record::InputData {
+                        collection: Nsid::from_str(atrium_api::app::bsky::feed::Repost::NSID)?,
+                        record: atrium_api::record::KnownRecord::AppBskyFeedRepost(Box::new(
+                            Object::from(atrium_api::app::bsky::feed::repost::RecordData {
+                                created_at: atrium_api::types::string::Datetime::now(),
+                                subject: Object::from(object.clone()),
+                            }),
+                        ))
+                        .try_into_unknown()?,
+                        repo: self.id.clone(),
+                        rkey: None,
+                        swap_commit: None,
+                        validate: None,
+                    },
+                ))
+                .await?;
+        }
 
         Ok(())
     }

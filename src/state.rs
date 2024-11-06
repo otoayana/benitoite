@@ -4,6 +4,7 @@ use tokio::sync::Mutex;
 
 use crate::{config::Config, session::Session};
 
+#[derive(Clone)]
 pub struct State {
     pub sessions: Arc<HashMap<String, Session>>,
 }

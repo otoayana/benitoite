@@ -5,10 +5,8 @@ use crate::{
 use askama::Template;
 use fluffer::Fluff;
 use fluskama::FluffTemplate;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
-type Client = fluffer::Client<Arc<Mutex<State>>>;
+type Client = fluffer::Client<State>;
 
 #[derive(Debug, Template)]
 #[template(path = "feed.gmi", escape = "txt")]
@@ -17,9 +15,10 @@ pub struct Feed {
 }
 
 pub async fn feed<'a>(c: Client) -> FluffTemplate<Feed> {
-    let state = c.state.lock().await;
     if let Some(fingerprint) = c.fingerprint() {
-        let feed = state
+        let feed = c
+            .state
+            .clone()
             .sessions
             .get(&fingerprint)
             .unwrap()
@@ -42,8 +41,7 @@ pub async fn interact(c: Client) -> Fluff {
     };
 
     if let Some(fingerprint) = c.fingerprint() {
-        let state = c.state.lock().await;
-        let session = state.sessions.get(&fingerprint).unwrap().clone();
+        let session = c.state.clone().sessions.get(&fingerprint).unwrap().clone();
 
         match input.as_str() {
             "l" => session.like(&id).await.unwrap(),
