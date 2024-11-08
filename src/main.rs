@@ -31,6 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .state(state)
         .route("/", crate::views::feed)
         .route("/p/:id", crate::views::interact)
+        .route("/p/:id/r", crate::views::reply)
         .run();
 
     info!("listening on {}", config.base.bind);

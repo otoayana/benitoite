@@ -33,21 +33,38 @@ pub async fn feed<'a>(c: Client) -> FluffTemplate<Feed> {
 }
 
 pub async fn interact(c: Client) -> Fluff {
-    let id = c.parameter("id").unwrap();
-
-    let Some(input) = c.input() else {
-        return Fluff::Input("usage: \"l\" to like, \"r\" to repost, \"R\" to reply".to_string());
-    };
-
     if let Some(fingerprint) = c.fingerprint() {
+        let Some(input) = c.input() else {
+            return Fluff::Input(
+                "usage: \"l\" to like, \"r\" to repost, \"R\" to reply".to_string(),
+            );
+        };
+
+        let id = c.parameter("id").unwrap();
         let session = c.state.clone().sessions.get(&fingerprint).unwrap().clone();
 
         match input.as_str() {
             "l" => session.like(&id).await.unwrap(),
             "r" => session.repost(&id).await.unwrap(),
+            "R" => return Fluff::RedirectTemporary(format!("/p/{id}/r")),
             _ => (),
         }
     }
+
+    Fluff::RedirectTemporary("/".to_string())
+}
+
+pub async fn reply(c: Client) -> Fluff {
+    if let Some(fingerprint) = c.fingerprint() {
+        let Some(input) = c.input() else {
+            return Fluff::Input("write your reply here".to_string());
+        };
+
+        let id = c.parameter("id").unwrap();
+        let session = c.state.clone().sessions.get(&fingerprint).unwrap().clone();
+
+        session.reply(id, &input).await.unwrap();
+    };
 
     Fluff::RedirectTemporary("/".to_string())
 }

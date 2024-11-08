@@ -4,9 +4,10 @@ use atrium_api::{
     agent::{store::MemorySessionStore, AtpAgent},
     app::bsky::feed::defs::{FeedViewPostReasonRefs, PostViewEmbedRefs, ReplyRefParentRefs},
     com::atproto::repo::strong_ref::MainData,
+    record::KnownRecord,
     types::{
-        string::{AtIdentifier, Nsid},
-        Collection, LimitedNonZeroU8, Object, TryIntoUnknown, Union, Unknown,
+        string::{AtIdentifier, Datetime, Did, Nsid},
+        Collection, LimitedNonZeroU8, Object, TryFromUnknown, TryIntoUnknown, Union, Unknown,
     },
 };
 use atrium_xrpc_client::reqwest::ReqwestClient;
@@ -314,6 +315,91 @@ impl Session {
                 ))
                 .await?;
         }
+
+        Ok(())
+    }
+
+    pub async fn reply<'a>(
+        self,
+        id: &'a str,
+        body: &'a str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let hash_map = self.objects.lock().await;
+        let object = hash_map.get(id).unwrap();
+        let post = self
+            .agent
+            .api
+            .com
+            .atproto
+            .repo
+            .get_record(Object::from(
+                atrium_api::com::atproto::repo::get_record::ParametersData {
+                    cid: Some(object.cid.clone()),
+                    collection: Nsid::from_str(atrium_api::app::bsky::feed::Post::NSID)?,
+                    repo: AtIdentifier::Did(Did::from_str(
+                        object.uri.split("/").skip(2).next().unwrap(),
+                    )?),
+                    rkey: object.uri.split("/").last().unwrap().to_string(),
+                },
+            ))
+            .await?;
+
+        self.agent
+            .api
+            .com
+            .atproto
+            .repo
+            .create_record(Object::from(
+                atrium_api::com::atproto::repo::create_record::InputData {
+                    collection: Nsid::from_str(atrium_api::app::bsky::feed::Post::NSID)?,
+                    record: atrium_api::record::KnownRecord::AppBskyFeedPost(Box::from(
+                        Object::from(atrium_api::app::bsky::feed::post::RecordData {
+                            created_at: Datetime::now(),
+                            embed: None,
+                            entities: None,
+                            facets: None,
+                            labels: None,
+                            langs: None,
+                            reply: Some(Object::from(
+                                atrium_api::app::bsky::feed::post::ReplyRefData {
+                                    parent: Object::from(
+                                        atrium_api::com::atproto::repo::strong_ref::MainData {
+                                            cid: object.cid.clone(),
+                                            uri: object.uri.clone(),
+                                        },
+                                    ),
+                                    root: Object::from({
+                                        if let KnownRecord::AppBskyFeedPost(post_boxed) =
+                                            KnownRecord::try_from_unknown(post.value.clone())?
+                                        {
+                                            if let Some(reply) = Box::leak(post_boxed).reply.clone() {
+                                                reply
+                                                .root
+                                                .clone()
+                                            } else {
+                                                Object::from(atrium_api::com::atproto::repo::strong_ref::MainData {
+                                                    cid: object.cid.clone(),
+                                                    uri: object.uri.clone(),
+                                                })
+                                            }
+                                        } else {
+                                            return Err(Box::from("root not found"));
+                                        }
+                                    }),
+                                },
+                            )),
+                            tags: None,
+                            text: body.to_string(),
+                        }),
+                    ))
+                    .try_into_unknown()?,
+                    repo: self.id.clone(),
+                    rkey: None,
+                    swap_commit: None,
+                    validate: None,
+                },
+            ))
+            .await?;
 
         Ok(())
     }
