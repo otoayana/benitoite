@@ -42,8 +42,6 @@ impl Session {
         let session = agent.api.com.atproto.server.get_session().await?;
         let id = AtIdentifier::Did(session.did.clone());
 
-        println!("session spawned for user @{}", session.handle.to_string());
-
         Ok(Session {
             id,
             agent: Arc::new(agent),
