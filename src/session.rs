@@ -17,7 +17,7 @@ use tokio::sync::Mutex;
 
 use crate::{
     config::Account,
-    types::{Media, Post, PostContext},
+    types::{Media, Post, PostContext, Quote},
 };
 
 #[derive(Clone)]
@@ -128,6 +128,30 @@ impl Session {
                             )))
                         }
                         PostViewEmbedRefs::AppBskyEmbedVideoView(_) => Some(Media::Video),
+                        PostViewEmbedRefs::AppBskyEmbedRecordView(quote) => {
+                            if let Union::Refs(atrium_api::app::bsky::embed::record::ViewRecordRefs::ViewRecord(quote_rec)) = Box::leak(quote).record.clone() {
+                                Some(Media::Quote(Quote {
+                                    author: quote_rec.author.handle.to_string(),
+                                    body: if let Unknown::Object(body) = quote_rec.value.clone() {
+                                        body.get("text").unwrap().iter()
+                                            .filter(|v| matches!(v.kind(), IpldKind::String))
+                                            .map(|v| {
+                                                if let Ipld::String(val) = v {
+                                                    val.clone()
+                                                } else {
+                                                    String::new()
+                                                }
+                                            })
+                                            .next()
+                                            .unwrap()
+                                    } else {
+                                        String::new()
+                                    },
+                                }))
+                            } else {
+                                None
+                            }
+                        }
                         _ => None,
                     },
                     Union::Unknown(_) => None,

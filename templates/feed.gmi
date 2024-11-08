@@ -19,6 +19,11 @@
 => {{ext.0}} — {{ext.1}}
 		{%- when Media::Video %}
 — Video (unavailable)
+		{%- when Media::Quote with (quote) %}
+>👤 @{{quote.author}}
+			{%- for bl in quote.body.lines() %}
+>{{bl}}
+			{%- endfor -%}
 	{%- endmatch -%}
 {%- endif %}
 => /p/{{post.id}} ✉️ {{post.replies}} replies · {{post.reposts}} reposts · {{post.likes}} likes

@@ -2,6 +2,7 @@
 pub enum Media {
     Image((String, String)),
     External((String, String)),
+    Quote(Quote),
     Video,
 }
 
@@ -15,6 +16,12 @@ pub struct Post {
     pub reposts: u64,
     pub likes: u64,
     pub context: PostContext,
+}
+
+#[derive(Debug)]
+pub struct Quote {
+    pub author: String,
+    pub body: String,
 }
 
 #[derive(Debug)]
