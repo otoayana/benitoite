@@ -1,6 +1,6 @@
 use crate::{
     state::State,
-    types::{Media, Post},
+    types::{Media, Post, PostContext},
 };
 use askama::Template;
 use fluffer::Fluff;

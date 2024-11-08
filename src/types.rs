@@ -14,4 +14,12 @@ pub struct Post {
     pub replies: u64,
     pub reposts: u64,
     pub likes: u64,
+    pub context: PostContext,
+}
+
+#[derive(Debug)]
+pub enum PostContext {
+    Reply(String),
+    Repost(String),
+    None,
 }

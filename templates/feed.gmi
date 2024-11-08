@@ -3,6 +3,11 @@
 
 {%- for post in posts %}
 => /@{{post.username}} 👤 @{{post.username}}
+{%- match post.context -%}
+	{%- when PostContext::None -%}
+	{%- when PostContext::Repost with (reposter) %} · reposted by @{{reposter}}
+	{%- when PostContext::Reply with (author) %} · replying to @{{author}}
+{%- endmatch -%}
 {%- if post.body.len() > 0 %}
 {{ post.body }}
 {%- endif -%}
