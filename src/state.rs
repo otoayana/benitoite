@@ -17,7 +17,7 @@ impl State {
         for (fingerprint, account) in &config.accounts {
             let session = Session::new(&account, objects.clone()).await?;
             debug!("session spawned for user @{}", &session.handle);
-            sessions.insert(fingerprint.clone(), session);
+            sessions.insert(fingerprint.clone().to_lowercase(), session);
         }
 
         info!("{} sessions spawned", sessions.len());

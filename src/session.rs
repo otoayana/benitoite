@@ -7,13 +7,12 @@ use atrium_api::{
     record::KnownRecord,
     types::{
         string::{AtIdentifier, Datetime, Did, Nsid},
-        Collection, LimitedNonZeroU8, Object, TryFromUnknown, TryIntoUnknown, Union, Unknown,
+        Collection, LimitedNonZeroU8, Object, TryFromUnknown, TryIntoUnknown, Union,
     },
 };
 use atrium_xrpc_client::reqwest::ReqwestClient;
 use blake3::Hasher;
 use futures::future::join_all;
-use ipld_core::ipld::{Ipld, IpldKind};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -84,25 +83,16 @@ impl Session {
             Post {
                 id: hash.to_string(),
                 username: v.post.author.handle.as_str().to_string(),
-                body: {
-                    if let Unknown::Object(values) = &v.post.record {
-                        values
-                            .get("text")
-                            .unwrap()
-                            .iter()
-                            .filter(|v| matches!(v.kind(), IpldKind::String))
-                            .map(|v| {
-                                if let Ipld::String(val) = v {
-                                    val.clone()
-                                } else {
-                                    String::new()
-                                }
-                            })
-                            .next()
-                            .unwrap()
-                    } else {
-                        String::new()
-                    }
+                body: if let KnownRecord::AppBskyFeedPost(body) = KnownRecord::try_from_unknown(v.post.record.clone()).unwrap() {
+                    Box::leak(body).text.clone().chars().map(|v| {
+                        if v == '#' {
+                            '♯'
+                        } else {
+                            v
+                        }
+                    }).collect::<String>()
+                } else {
+                    String::new()
                 },
                 media: v.post.embed.clone().map_or(None, |v| match v {
                     Union::Refs(r) => match r {
@@ -133,18 +123,8 @@ impl Session {
                             if let Union::Refs(atrium_api::app::bsky::embed::record::ViewRecordRefs::ViewRecord(quote_rec)) = Box::leak(quote).record.clone() {
                                 Some(Media::Quote(Quote {
                                     author: quote_rec.author.handle.to_string(),
-                                    body: if let Unknown::Object(body) = quote_rec.value.clone() {
-                                        body.get("text").unwrap().iter()
-                                            .filter(|v| matches!(v.kind(), IpldKind::String))
-                                            .map(|v| {
-                                                if let Ipld::String(val) = v {
-                                                    val.clone()
-                                                } else {
-                                                    String::new()
-                                                }
-                                            })
-                                            .next()
-                                            .unwrap()
+                                    body: if let KnownRecord::AppBskyFeedPost(body) = KnownRecord::try_from_unknown(quote_rec.value.clone()).unwrap() {
+                                        body.text.clone()
                                     } else {
                                         String::new()
                                     },
