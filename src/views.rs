@@ -11,25 +11,24 @@ type Client = fluffer::Client<State>;
 #[derive(Debug, Template)]
 #[template(path = "feed.gmi", escape = "txt")]
 pub struct Feed {
+    session: Option<String>,
     posts: Vec<Post>,
 }
 
 pub async fn feed<'a>(c: Client) -> FluffTemplate<Feed> {
     if let Some(fingerprint) = c.fingerprint() {
-        let feed = c
-            .state
-            .clone()
-            .sessions
-            .get(&fingerprint)
-            .unwrap()
-            .clone()
-            .feed()
-            .await
-            .unwrap();
+        let session = c.state.sessions.get(&fingerprint).unwrap();
+        let feed = session.clone().feed().await.unwrap();
 
-        FluffTemplate::from(Feed { posts: feed })
+        FluffTemplate::from(Feed {
+            session: Some(session.handle.clone()),
+            posts: feed,
+        })
     } else {
-        FluffTemplate::from(Feed { posts: Vec::new() })
+        FluffTemplate::from(Feed {
+            session: None,
+            posts: Vec::new(),
+        })
     }
 }
 

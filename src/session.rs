@@ -25,6 +25,7 @@ pub struct Session {
     id: AtIdentifier,
     agent: Arc<AtpAgent<MemorySessionStore, ReqwestClient>>,
     objects: Arc<Mutex<HashMap<String, MainData>>>,
+    pub handle: String,
 }
 
 impl Session {
@@ -47,6 +48,7 @@ impl Session {
             id,
             agent: Arc::new(agent),
             objects,
+            handle: session.handle.to_string(),
         })
     }
 

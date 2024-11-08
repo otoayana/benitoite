@@ -1,6 +1,11 @@
-{%- if posts.len() > 0 -%}
-# Home
+{% if let Some(handle) = session %}
+# Hi, @{{handle}}!
 
+=> /p/ ✏️ New Post
+=> /@{{handle}} 👤 View Profile
+=> /n/ 🔔 Notifications
+
+## Following
 {%- for post in posts %}
 => /@{{post.username}} 👤 @{{post.username}}
 {%- match post.context -%}
@@ -31,5 +36,5 @@
 {%- else -%}
 # Benitoite
 
-To see this page, you need to authenticate using a client certificate
+Welcome! You need to sign in using a registered client certificate to use this page. If your certificate doesn't work, contact your server administrator.
 {%- endif -%}
