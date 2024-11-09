@@ -1,9 +1,9 @@
 {% if let Some(handle) = session %}
 # Hi, @{{handle}}!
 
-=> /p/ ✏️ New Post
+=> /p ✏️ New Post
 => /@{{handle}} 👤 View Profile
-=> /n/ 🔔 Notifications
+=> /n 🔔 Notifications
 
 ## Following
 {%- for post in posts %}

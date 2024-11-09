@@ -68,3 +68,16 @@ pub async fn reply(c: Client) -> Fluff {
 
     Fluff::RedirectTemporary("/".to_string())
 }
+
+pub async fn post(c: Client) -> Fluff {
+    if let Some(fingerprint) = c.fingerprint() {
+        let Some(input) = c.input() else {
+            return Fluff::Input("write your post here".to_string());
+        };
+
+        let session = c.state.clone().sessions.get(&fingerprint).unwrap().clone();
+        session.post(&input).await.unwrap();
+    };
+
+    Fluff::RedirectTemporary("/".to_string())
+}

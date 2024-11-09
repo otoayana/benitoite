@@ -383,4 +383,38 @@ impl Session {
 
         Ok(())
     }
+
+    pub async fn post<'a>(self, body: &'a str) -> Result<(), Box<dyn std::error::Error>> {
+        self.agent
+            .api
+            .com
+            .atproto
+            .repo
+            .create_record(Object::from(
+                atrium_api::com::atproto::repo::create_record::InputData {
+                    collection: Nsid::from_str(atrium_api::app::bsky::feed::Post::NSID)?,
+                    record: atrium_api::record::KnownRecord::AppBskyFeedPost(Box::from(
+                        Object::from(atrium_api::app::bsky::feed::post::RecordData {
+                            created_at: Datetime::now(),
+                            embed: None,
+                            entities: None,
+                            facets: None,
+                            labels: None,
+                            langs: None,
+                            reply: None,
+                            tags: None,
+                            text: body.to_string(),
+                        }),
+                    ))
+                    .try_into_unknown()?,
+                    repo: self.id.clone(),
+                    rkey: None,
+                    swap_commit: None,
+                    validate: None,
+                },
+            ))
+            .await?;
+
+        Ok(())
+    }
 }

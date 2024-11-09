@@ -30,6 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .path_to_key(config.base.key.clone())
         .state(state)
         .route("/", crate::views::feed)
+        .route("/p", crate::views::post)
         .route("/p/:id", crate::views::interact)
         .route("/p/:id/r", crate::views::reply)
         .run();
