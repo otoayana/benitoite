@@ -1,23 +1,21 @@
-use std::{collections::HashMap, ops::Deref, str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use atrium_api::{
     agent::{store::MemorySessionStore, AtpAgent},
-    app::bsky::feed::defs::{FeedViewPostReasonRefs, PostViewEmbedRefs, ReplyRefParentRefs},
     com::atproto::repo::strong_ref::MainData,
     record::KnownRecord,
     types::{
         string::{AtIdentifier, Datetime, Did, Nsid},
-        Collection, LimitedNonZeroU8, Object, TryFromUnknown, TryIntoUnknown, Union,
+        Collection, LimitedNonZeroU8, Object, TryFromUnknown, TryIntoUnknown,
     },
 };
 use atrium_xrpc_client::reqwest::ReqwestClient;
-use blake3::Hasher;
 use futures::future::join_all;
 use tokio::sync::Mutex;
 
 use crate::{
     config::Account,
-    types::{Media, Post, PostContext, Quote},
+    types::{Post, Profile},
 };
 
 #[derive(Clone)]
@@ -66,97 +64,64 @@ impl Session {
             ))
             .await?;
 
-        let feed: Vec<Post> = join_all(action.feed.iter().map(|v| async {
-            // Create a hash to use in URIs
-            let mut hasher = Hasher::new();
-            hasher.update(v.post.uri.clone().as_bytes());
-            let hash = hasher.finalize();
-
-            self.objects.lock().await.insert(
-                hash.to_string(),
-                MainData {
-                    cid: v.post.cid.clone(),
-                    uri: v.post.uri.clone(),
-                },
-            );
-
-            Post {
-                id: hash.to_string(),
-                username: v.post.author.handle.as_str().to_string(),
-                body: if let KnownRecord::AppBskyFeedPost(body) = KnownRecord::try_from_unknown(v.post.record.clone()).unwrap() {
-                    Box::leak(body).text.clone().chars().map(|v| {
-                        if v == '#' {
-                            '♯'
-                        } else {
-                            v
-                        }
-                    }).collect::<String>()
-                } else {
-                    String::new()
-                },
-                media: v.post.embed.clone().map_or(None, |v| match v {
-                    Union::Refs(r) => match r {
-                        // TODO(otoayana): Add multiple media items
-                        PostViewEmbedRefs::AppBskyEmbedImagesView(image) => {
-                            let image_data =
-                                Box::leak(image).data.images.first().unwrap().data.clone();
-                            let alt = if image_data.alt.len() > 0 {
-                                image_data
-                                    .alt
-                                    .chars()
-                                    .map(|c| if c == 0xA as char { ' ' } else { c })
-                                    .collect()
-                            } else {
-                                String::from("Photo")
-                            };
-                            Some(Media::Image((image_data.fullsize, alt)))
-                        }
-                        PostViewEmbedRefs::AppBskyEmbedExternalView(external) => {
-                            let external_data = Box::leak(external).data.external.clone();
-                            Some(Media::External((
-                                external_data.uri.clone(),
-                                external_data.description.clone(),
-                            )))
-                        }
-                        PostViewEmbedRefs::AppBskyEmbedVideoView(_) => Some(Media::Video),
-                        PostViewEmbedRefs::AppBskyEmbedRecordView(quote) => {
-                            if let Union::Refs(atrium_api::app::bsky::embed::record::ViewRecordRefs::ViewRecord(quote_rec)) = Box::leak(quote).record.clone() {
-                                Some(Media::Quote(Quote {
-                                    author: quote_rec.author.handle.to_string(),
-                                    body: if let KnownRecord::AppBskyFeedPost(body) = KnownRecord::try_from_unknown(quote_rec.value.clone()).unwrap() {
-                                        body.text.clone()
-                                    } else {
-                                        String::new()
-                                    },
-                                }))
-                            } else {
-                                None
-                            }
-                        }
-                        _ => None,
-                    },
-                    Union::Unknown(_) => None,
-                }),
-                replies: v.post.reply_count.unwrap_or(0) as u64,
-                reposts: v.post.repost_count.unwrap_or(0) as u64,
-                likes: v.post.like_count.unwrap_or(0) as u64,
-                context: if let Some(Union::Refs(FeedViewPostReasonRefs::ReasonRepost(r))) =
-                    v.reason.clone()
-                {
-                    PostContext::Repost(r.deref().by.handle.to_string())
-                } else {
-                    if let Some(Union::Refs(ReplyRefParentRefs::PostView(reply))) =
-                        v.reply.clone().map(|v| v.parent.clone())
-                    {
-                        PostContext::Reply(reply.author.handle.to_string())
-                    } else {
-                        PostContext::None
-                    }
-                },
-            }
-        }))
+        let feed: Vec<Post> = join_all(
+            action
+                .feed
+                .iter()
+                .map(|v| async { Post::push(v, &self.objects).await }),
+        )
         .await;
         Ok(feed)
+    }
+
+    pub async fn profile<'a>(self, id: &'a str) -> Result<Profile, Box<dyn std::error::Error>> {
+        let identifier = AtIdentifier::from_str(id)?;
+        let account = self
+            .agent
+            .api
+            .app
+            .bsky
+            .actor
+            .get_profile(Object::from(
+                atrium_api::app::bsky::actor::get_profile::ParametersData {
+                    actor: identifier.clone(),
+                },
+            ))
+            .await?;
+        let account_feed = self
+            .agent
+            .api
+            .app
+            .bsky
+            .feed
+            .get_author_feed(Object::from(
+                atrium_api::app::bsky::feed::get_author_feed::ParametersData {
+                    actor: identifier.clone(),
+                    cursor: None,
+                    filter: None,
+                    include_pins: Some(true),
+                    limit: LimitedNonZeroU8::try_from(10).ok(),
+                },
+            ))
+            .await?;
+
+        Ok(Profile {
+            id: identifier.clone(),
+            name: account
+                .display_name
+                .clone()
+                .unwrap_or(account.handle.to_string()),
+            bio: account.description.clone().unwrap_or("".to_string()),
+            followers: account.followers_count.unwrap_or(0) as u64,
+            following: account.follows_count.unwrap_or(0) as u64,
+            posts: join_all(
+                account_feed
+                    .feed
+                    .iter()
+                    .map(|p| async { Post::push(p, &self.objects).await }),
+            )
+            .await,
+        })
     }
 
     pub async fn like<'a>(self, id: &'a str) -> Result<(), Box<dyn std::error::Error>> {

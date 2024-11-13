@@ -1,0 +1,30 @@
+{% if session.is_some() -%}
+{% if let Some(p) = profile %}
+# {{p.name}} (
+{%- match p.id.clone() -%}
+	{%- when AtIdentifier::Handle with (handle) -%}
+		@{{ handle.as_str() }}
+	{%- when AtIdentifier::Did with (did) -%}
+		{{ did.as_str() }}
+{%- endmatch -%}
+)
+
+{% for line in p.bio.lines() -%}
+> {{line}}
+{% endfor %}
+{{p.followers}} followers · {{p.following}} follows
+## Posts
+
+{%- for post in p.posts %}
+{{post}}
+{% endfor -%}
+{% else %}
+# Not Found
+
+This profile could not be found.
+{% endif %}
+{% else %}
+# Benitoite
+
+Welcome! You need to sign in using a registered client certificate to use this page. If your certificate doesn't work, contact your server administrator.
+{% endif %}

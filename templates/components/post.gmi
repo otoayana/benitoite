@@ -1,0 +1,25 @@
+=> /@{{username}} 👤 @{{username}}
+{%- match context -%}
+	{%- when PostContext::None -%}
+	{%- when PostContext::Repost with (reposter) %} · reposted by @{{reposter}}
+	{%- when PostContext::Reply with (author) %} · replying to @{{author}}
+{%- endmatch -%}
+{%- if body.len() > 0 %}
+{{ body }}
+{%- endif -%}
+{%- if let Some(m) = media -%}
+	{%- match m -%}
+		{%- when Media::Image with (img) %}
+=> {{img.0}} — {{img.1}}
+		{%- when Media::External with (ext) %}
+=> {{ext.0}} — {{ext.1}}
+		{%- when Media::Video %}
+— Video (unavailable)
+		{%- when Media::Quote with (quote) %}
+>👤 @{{quote.author}}
+			{%- for bl in quote.body.lines() %}
+>{{bl}}
+			{%- endfor -%}
+	{%- endmatch -%}
+{%- endif %}
+=> /p/{{id}} ✉️ {{replies}} replies · {{reposts}} reposts · {{likes}} likes

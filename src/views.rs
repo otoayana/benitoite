@@ -1,11 +1,11 @@
 use crate::{
     state::State,
-    types::{Media, Post, PostContext},
+    types::{Post, Profile},
 };
 use askama::Template;
+use atrium_api::types::string::AtIdentifier;
 use fluffer::Fluff;
 use fluskama::FluffTemplate;
-
 type Client = fluffer::Client<State>;
 
 #[derive(Debug, Template)]
@@ -13,6 +13,13 @@ type Client = fluffer::Client<State>;
 pub struct Feed {
     session: Option<String>,
     posts: Vec<Post>,
+}
+
+#[derive(Debug, Template)]
+#[template(path = "profile.gmi", escape = "txt")]
+pub struct ProfileView {
+    session: Option<String>,
+    profile: Option<Profile>,
 }
 
 pub async fn feed<'a>(c: Client) -> FluffTemplate<Feed> {
@@ -28,6 +35,24 @@ pub async fn feed<'a>(c: Client) -> FluffTemplate<Feed> {
         FluffTemplate::from(Feed {
             session: None,
             posts: Vec::new(),
+        })
+    }
+}
+
+pub async fn profile<'a>(c: Client) -> FluffTemplate<ProfileView> {
+    if let Some(fingerprint) = c.fingerprint() {
+        let parameter = c.parameter("profile").unwrap();
+        let session = c.state.sessions.get(&fingerprint).unwrap();
+        let profile = session.clone().profile(parameter).await.unwrap();
+
+        FluffTemplate::from(ProfileView {
+            session: Some(session.handle.clone()),
+            profile: Some(profile),
+        })
+    } else {
+        FluffTemplate::from(ProfileView {
+            session: None,
+            profile: None,
         })
     }
 }
