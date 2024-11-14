@@ -22,4 +22,16 @@
 			{%- endfor -%}
 	{%- endmatch -%}
 {%- endif %}
-=> /p/{{id}} ✉️ {{replies}} replies · {{reposts}} reposts · {{likes}} likes
+=> /p/{{id}} ✉️ {{replies}} replies · {% if viewer.reposted -%}
+	[
+{%- endif -%}
+	{{reposts}}
+{%- if viewer.reposted -%}
+	]
+{%- endif %} reposts · {% if viewer.liked -%}
+	[
+{%- endif -%}
+	{{likes}}
+{%- if viewer.liked -%}
+	]
+{%- endif %} likes

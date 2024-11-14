@@ -5,7 +5,13 @@
 {% for line in p.bio.lines() -%}
 > {{line}}
 {% endfor %}
-=> /@{{p.id.as_str()}}/f 👥 {{p.followers}} followers · {{p.following}} follows
+=> /@{{p.id.as_str()}}/f 👥 {% if p.following -%}
+	[
+{%- endif -%}
+	{{p.followers}}
+{%- if p.following -%}
+	]
+{%- endif %} followers · {{p.follows}} follows
 ## Posts
 
 {%- for post in p.posts %}

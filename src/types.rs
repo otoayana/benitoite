@@ -26,7 +26,8 @@ pub struct Profile {
     pub name: String,
     pub bio: String,
     pub followers: u64,
-    pub following: u64,
+    pub follows: u64,
+    pub following: bool,
     pub posts: Vec<Post>,
 }
 
@@ -40,6 +41,7 @@ pub struct Post {
     pub replies: u64,
     pub reposts: u64,
     pub likes: u64,
+    pub viewer: Viewer,
     pub context: PostContext,
 }
 
@@ -47,6 +49,12 @@ pub struct Post {
 pub struct Quote {
     pub author: String,
     pub body: String,
+}
+
+#[derive(Debug)]
+pub struct Viewer {
+    pub liked: bool,
+    pub reposted: bool,
 }
 
 #[derive(Debug)]
@@ -153,6 +161,10 @@ impl Post {
                 } else {
                     PostContext::None
                 }
+            },
+            viewer: Viewer {
+                liked: post.post.viewer.clone().unwrap().like.is_some(),
+                reposted: post.post.viewer.clone().unwrap().repost.is_some(),
             },
         }
     }

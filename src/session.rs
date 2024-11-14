@@ -113,7 +113,8 @@ impl Session {
                 .unwrap_or(account.handle.to_string()),
             bio: account.description.clone().unwrap_or("".to_string()),
             followers: account.followers_count.unwrap_or(0) as u64,
-            following: account.follows_count.unwrap_or(0) as u64,
+            follows: account.follows_count.unwrap_or(0) as u64,
+            following: account.viewer.clone().unwrap().following.is_some(),
             posts: join_all(
                 account_feed
                     .feed
