@@ -7,7 +7,7 @@ use atrium_api::{
     },
     com::atproto::repo::strong_ref::MainData,
     record::KnownRecord,
-    types::{string::AtIdentifier, Object, TryFromUnknown, Union},
+    types::{string::Handle, Object, TryFromUnknown, Union},
 };
 use blake3::Hasher;
 use tokio::sync::Mutex;
@@ -22,7 +22,7 @@ pub enum Media {
 
 #[derive(Debug)]
 pub struct Profile {
-    pub id: AtIdentifier,
+    pub id: Handle,
     pub name: String,
     pub bio: String,
     pub followers: u64,

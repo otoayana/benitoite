@@ -3,7 +3,6 @@ use crate::{
     types::{Post, Profile},
 };
 use askama::Template;
-use atrium_api::types::string::AtIdentifier;
 use fluffer::Fluff;
 use fluskama::FluffTemplate;
 type Client = fluffer::Client<State>;
@@ -55,6 +54,24 @@ pub async fn profile<'a>(c: Client) -> FluffTemplate<ProfileView> {
             profile: None,
         })
     }
+}
+
+pub async fn follow(c: Client) -> Fluff {
+    let profile = c.parameter("profile").unwrap();
+
+    if let Some(fingerprint) = c.fingerprint() {
+        c.state
+            .clone()
+            .sessions
+            .get(&fingerprint)
+            .unwrap()
+            .clone()
+            .follow(profile)
+            .await
+            .unwrap();
+    }
+
+    Fluff::RedirectTemporary(format!("/@{}", profile))
 }
 
 pub async fn interact(c: Client) -> Fluff {

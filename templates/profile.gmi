@@ -1,18 +1,11 @@
 {% if session.is_some() -%}
 {% if let Some(p) = profile %}
-# {{p.name}} (
-{%- match p.id.clone() -%}
-	{%- when AtIdentifier::Handle with (handle) -%}
-		@{{ handle.as_str() }}
-	{%- when AtIdentifier::Did with (did) -%}
-		{{ did.as_str() }}
-{%- endmatch -%}
-)
+# {{p.name}} (@{{ p.id.as_str() }})
 
 {% for line in p.bio.lines() -%}
 > {{line}}
 {% endfor %}
-{{p.followers}} followers · {{p.following}} follows
+=> /@{{p.id.as_str()}}/f 👥 {{p.followers}} followers · {{p.following}} follows
 ## Posts
 
 {%- for post in p.posts %}

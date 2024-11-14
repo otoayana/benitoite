@@ -106,7 +106,7 @@ impl Session {
             .await?;
 
         Ok(Profile {
-            id: identifier.clone(),
+            id: account.handle.clone(),
             name: account
                 .display_name
                 .clone()
@@ -122,6 +122,64 @@ impl Session {
             )
             .await,
         })
+    }
+
+    pub async fn follow<'a>(self, id: &'a str) -> Result<(), Box<dyn std::error::Error>> {
+        let identifier = AtIdentifier::from_str(id)?;
+        let account = self
+            .agent
+            .api
+            .app
+            .bsky
+            .actor
+            .get_profile(Object::from(
+                atrium_api::app::bsky::actor::get_profile::ParametersData {
+                    actor: identifier.clone(),
+                },
+            ))
+            .await?;
+        let following = account.viewer.clone().unwrap().following.clone();
+
+        if let Some(uri) = following {
+            self.agent
+                .api
+                .com
+                .atproto
+                .repo
+                .delete_record(Object::from(
+                    atrium_api::com::atproto::repo::delete_record::InputData {
+                        collection: Nsid::from_str(atrium_api::app::bsky::graph::Follow::NSID)?,
+                        repo: self.id.clone(),
+                        rkey: uri.split("/").last().unwrap().to_string(),
+                        swap_commit: None,
+                        swap_record: None,
+                    },
+                ))
+                .await?;
+        } else {
+            self.agent
+                .api
+                .com
+                .atproto
+                .repo
+                .create_record(Object::from(
+                    atrium_api::com::atproto::repo::create_record::InputData {
+                        collection: Nsid::from_str(atrium_api::app::bsky::graph::Follow::NSID)?,
+                        record: atrium_api::app::bsky::graph::follow::RecordData {
+                            created_at: Datetime::now(),
+                            subject: account.did.clone(),
+                        }
+                        .try_into_unknown()?,
+                        repo: self.id.clone(),
+                        rkey: None,
+                        swap_commit: None,
+                        validate: None,
+                    },
+                ))
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn like<'a>(self, id: &'a str) -> Result<(), Box<dyn std::error::Error>> {
